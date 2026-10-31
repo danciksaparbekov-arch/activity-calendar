@@ -11,6 +11,7 @@ import Circles, { JoinForm } from './pages/Circles';
 import NameForm from './components/NameForm';
 import ChangePassword from './components/ChangePassword';
 import InstallButton from './components/InstallButton';
+import TelegramLink from './components/TelegramLink';
 
 export default function App() {
   const { session, profile, loading, isAdmin, signOut } = useAuth();
@@ -47,6 +48,7 @@ export default function App() {
         )}
         <div className="who">
           <InstallButton />
+          <TelegramLink />
           <NameForm />
           <ChangePassword />
           <button className="link" onClick={signOut}>Выйти</button>
