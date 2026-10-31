@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import { supabase, imageUrl, BUCKET } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { dayTitle, hhmm } from '../lib/dates';
+import Attendees from '../components/Attendees';
+import Comments from '../components/Comments';
 
 export default function Day() {
   const { date } = useParams();
@@ -10,22 +12,37 @@ export default function Day() {
   const me = session.user.id;
   const [events, setEvents] = useState(null);
   const [free, setFree] = useState([]); // [{ user_id, from_time, to_time, profiles: { name } }]
+  const [people, setPeople] = useState([]); // все зарегистрированные — для отметок от админа
+  const [loadError, setLoadError] = useState('');
 
   const load = useCallback(async () => {
     const [ev, av] = await Promise.all([
-      supabase.from('events').select('*, rsvps(user_id, profiles(name))').eq('date', date).order('start_time'),
+      supabase
+        .from('events')
+        .select('*, rsvps(id, user_id, guest_name, profiles(name)), comments(id, user_id, body, created_at, profiles(name))')
+        .eq('date', date)
+        .order('start_time')
+        .order('created_at', { referencedTable: 'comments' }),
       supabase.from('availability').select('*, profiles(name)').eq('date', date).order('from_time'),
     ]);
+    setLoadError(ev.error?.message || '');
     setEvents(ev.data || []);
     setFree(av.data || []);
   }, [date]);
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    if (!isAdmin) return;
+    supabase.from('profiles').select('id, name').order('name').then(({ data }) => setPeople(data || []));
+  }, [isAdmin]);
+
   async function toggle(event) {
     const going = event.rsvps.some((r) => r.user_id === me);
-    if (going) await supabase.from('rsvps').delete().eq('event_id', event.id).eq('user_id', me);
-    else await supabase.from('rsvps').insert({ event_id: event.id });
+    const { error } = going
+      ? await supabase.from('rsvps').delete().eq('event_id', event.id).eq('user_id', me)
+      : await supabase.from('rsvps').insert({ event_id: event.id, user_id: me });
+    if (error) window.alert(error.message);
     load();
   }
 
@@ -47,7 +64,8 @@ export default function Day() {
       <Link to={`/?m=${date.slice(0, 7)}`} className="back">← К календарю</Link>
       <h2>{dayTitle(date)}</h2>
 
-      {events.length === 0 && <p className="muted">На этот день ничего не запланировано.</p>}
+      {loadError && <p className="err">Не удалось загрузить события: {loadError}</p>}
+      {!loadError && events.length === 0 && <p className="muted">На этот день ничего не запланировано.</p>}
 
       {events.map((e) => {
         const going = e.rsvps.some((r) => r.user_id === me);
@@ -73,9 +91,8 @@ export default function Day() {
                 {isAdmin && <Link className="btn ghost" to={`/admin/edit/${e.id}`}>✎ Править время и текст</Link>}
                 {isAdmin && <button className="btn danger" onClick={() => removeEvent(e)}>Удалить</button>}
               </div>
-              <p className="going">
-                Идут ({e.rsvps.length}): {e.rsvps.map((r) => r.profiles?.name).join(', ') || 'пока никто'}
-              </p>
+              <Attendees event={e} isAdmin={isAdmin} people={people} onChange={load} />
+              <Comments event={e} me={me} isAdmin={isAdmin} onChange={load} />
             </div>
           </article>
         );

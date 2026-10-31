@@ -38,12 +38,27 @@ create table public.events (
 );
 create index events_date_idx on public.events (date);
 
--- ── Подписки на события ──────────────────────────────────
+-- ── Подписки на события («кто идёт») ─────────────────────
+-- участник с аккаунтом (user_id) ИЛИ гость по имени (guest_name) — ровно одно из двух
 create table public.rsvps (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.events(id) on delete cascade,
+  user_id uuid references public.profiles(id) on delete cascade,
+  guest_name text check (guest_name is null or char_length(btrim(guest_name)) between 1 and 40),
+  constraint rsvps_who check ((user_id is not null) <> (guest_name is not null))
+);
+create unique index rsvps_event_user_uq on public.rsvps (event_id, user_id) where user_id is not null;
+create unique index rsvps_event_guest_uq on public.rsvps (event_id, lower(guest_name)) where guest_name is not null;
+
+-- ── Комментарии ──────────────────────────────────────────
+create table public.comments (
+  id uuid primary key default gen_random_uuid(),
   event_id uuid not null references public.events(id) on delete cascade,
   user_id uuid not null references public.profiles(id) on delete cascade default auth.uid(),
-  primary key (event_id, user_id)
+  body text not null check (char_length(btrim(body)) between 1 and 1000),
+  created_at timestamptz not null default now()
 );
+create index comments_event_idx on public.comments (event_id, created_at);
 
 -- ── Доступность (свободные промежутки) ───────────────────
 create table public.availability (
@@ -76,8 +91,19 @@ create policy "events admin update" on public.events for update to authenticated
 create policy "events admin delete" on public.events for delete to authenticated using (public.is_admin());
 
 create policy "rsvps read" on public.rsvps for select to authenticated using (true);
-create policy "rsvps insert own" on public.rsvps for insert to authenticated with check (user_id = auth.uid());
-create policy "rsvps delete own" on public.rsvps for delete to authenticated using (user_id = auth.uid());
+-- друг отмечает только себя; админ — кого угодно, включая гостей
+create policy "rsvps insert own or admin" on public.rsvps for insert to authenticated
+  with check (user_id = auth.uid() or public.is_admin());
+create policy "rsvps delete own or admin" on public.rsvps for delete to authenticated
+  using (user_id = auth.uid() or public.is_admin());
+
+-- комментарии: читать и писать любой вошедший, удалить — автор или админ
+alter table public.comments enable row level security;
+create policy "comments read" on public.comments for select to authenticated using (true);
+create policy "comments insert own" on public.comments for insert to authenticated
+  with check (user_id = auth.uid());
+create policy "comments delete own or admin" on public.comments for delete to authenticated
+  using (user_id = auth.uid() or public.is_admin());
 
 create policy "availability read" on public.availability for select to authenticated using (true);
 create policy "availability insert own" on public.availability for insert to authenticated with check (user_id = auth.uid());

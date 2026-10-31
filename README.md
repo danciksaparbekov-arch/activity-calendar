@@ -26,6 +26,15 @@
 5. **Redirect URL.** *Authentication → URL Configuration*: в *Site URL* и *Redirect URLs* добавить
    `http://localhost:5173/` и адрес сайта на Pages: `https://<user>.github.io/<repo>/`.
 
+### Обновление существующей базы
+
+`schema.sql` — полная схема для нового проекта. Если база уже создана, выполняйте только недостающие
+файлы из [supabase/migrations/](supabase/migrations/) по номерам в SQL Editor:
+
+- `002_comments_guests.sql` — комментарии к событиям; гости по имени и отметки «кто идёт» от админа.
+
+**Порядок выкладки:** сначала миграция в Supabase, потом `git push` (иначе сайт будет обращаться к таблицам, которых нет).
+
 ## Деплой на GitHub Pages
 
 1. Создать репозиторий, запушить проект в ветку `main`.
