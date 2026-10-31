@@ -5,6 +5,7 @@ import { useAuth } from '../auth';
 import { toISO, hhmm } from '../lib/dates';
 import TimeInput from '../components/TimeInput';
 import { checkImages, uploadImages } from '../lib/upload';
+import { useCircles } from '../circles';
 
 export default function EventForm() {
   const { id } = useParams(); // есть → редактирование
@@ -12,6 +13,9 @@ export default function EventForm() {
   const { session } = useAuth();
   const navigate = useNavigate();
 
+  const { circles, selectedId, setSelected } = useCircles();
+  // новое событие — в выбранном сейчас круге (или в первом, если выбраны «все»)
+  const [circleId, setCircleId] = useState(selectedId !== 'all' ? selectedId : circles[0]?.id || '');
   const [date, setDate] = useState(params.get('date') || toISO(new Date()));
   const [time, setTime] = useState('18:00');
   const [title, setTitle] = useState('');
@@ -25,6 +29,7 @@ export default function EventForm() {
     if (!id) return;
     supabase.from('events').select('*').eq('id', id).single().then(({ data }) => {
       if (!data) return;
+      setCircleId(data.circle_id);
       setDate(data.date);
       setTime(hhmm(data.start_time));
       setTitle(data.title);
@@ -51,6 +56,7 @@ export default function EventForm() {
     try {
       uploaded = await uploadImages(files);
       const row = {
+        circle_id: circleId,
         date,
         start_time: time,
         title: title.trim(),
@@ -63,6 +69,8 @@ export default function EventForm() {
         : await supabase.from('events').insert({ ...row, created_by: session.user.id }).select('id');
       if (error) throw error;
       if (!data?.length) throw new Error('Не удалось сохранить: нет прав или событие уже удалено');
+      // если открыт другой круг, переключаемся на круг события, иначе оно не покажется
+      if (selectedId !== 'all' && selectedId !== circleId) setSelected(circleId);
       navigate(`/day/${date}`);
     } catch (err) {
       // запись не сохранилась — убираем только что загруженные файлы
@@ -94,8 +102,14 @@ export default function EventForm() {
     <section className="narrow">
       <h2>{id ? 'Редактировать событие' : 'Новое событие'}</h2>
       <form onSubmit={submit} className="form">
+        <label>Круг
+          <select required value={circleId} onChange={(e) => setCircleId(e.target.value)}>
+            <option value="" disabled>Выберите круг…</option>
+            {circles.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </label>
         <div className="row">
-          <label>Дата <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} /></label>
+          <label>Дата<input type="date" required value={date} onChange={(e) => setDate(e.target.value)} /></label>
           <TimeInput label="Время (24 ч)" value={time} onChange={setTime} />
         </div>
         <label>Заголовок

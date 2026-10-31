@@ -6,6 +6,7 @@ import { dayTitle, hhmm } from '../lib/dates';
 import Attendees from '../components/Attendees';
 import AddPhotos from '../components/AddPhotos';
 import Comments from '../components/Comments';
+import { useCircles } from '../circles';
 
 export default function Day() {
   const { date } = useParams();
@@ -16,20 +17,22 @@ export default function Day() {
   const [people, setPeople] = useState([]); // все зарегистрированные — для отметок от админа
   const [loadError, setLoadError] = useState('');
 
+  const { circles, circleById, selectedId, visibleUserIds, membersOf } = useCircles();
+
   const load = useCallback(async () => {
+    let evQuery = supabase
+      .from('events')
+      .select('*, rsvps(id, user_id, guest_name, profiles(name)), comments(id, user_id, body, created_at, profiles(name))')
+      .eq('date', date);
+    if (selectedId !== 'all') evQuery = evQuery.eq('circle_id', selectedId);
     const [ev, av] = await Promise.all([
-      supabase
-        .from('events')
-        .select('*, rsvps(id, user_id, guest_name, profiles(name)), comments(id, user_id, body, created_at, profiles(name))')
-        .eq('date', date)
-        .order('start_time')
-        .order('created_at', { referencedTable: 'comments' }),
+      evQuery.order('start_time').order('created_at', { referencedTable: 'comments' }),
       supabase.from('availability').select('*, profiles(name)').eq('date', date).order('from_time'),
     ]);
     setLoadError(ev.error?.message || '');
     setEvents(ev.data || []);
     setFree(av.data || []);
-  }, [date]);
+  }, [date, selectedId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -60,6 +63,9 @@ export default function Day() {
 
   if (!events) return <div className="center">Загрузка…</div>;
 
+  // свободные — только люди выбранного круга
+  const freeShown = visibleUserIds ? free.filter((a) => visibleUserIds.has(a.user_id)) : free;
+
   return (
     <section className="day">
       <Link to={`/?m=${date.slice(0, 7)}`} className="back">← К календарю</Link>
@@ -74,6 +80,12 @@ export default function Day() {
           <article key={e.id} className="event">
             <div className="time">{hhmm(e.start_time)}</div>
             <div className="body">
+              {circles.length > 1 && circleById[e.circle_id] && (
+                <span className="circle-chip" style={{ borderColor: circleById[e.circle_id].color }}>
+                  <span className="dot" style={{ background: circleById[e.circle_id].color }} />
+                  {circleById[e.circle_id].name}
+                </span>
+              )}
               <h3>{e.title}</h3>
               {e.description && <p className="desc">{e.description}</p>}
               {e.images.length > 0 && (
@@ -93,7 +105,12 @@ export default function Day() {
                 {isAdmin && <Link className="btn ghost" to={`/admin/edit/${e.id}`}>✎ Править время и текст</Link>}
                 {isAdmin && <button className="btn danger" onClick={() => removeEvent(e)}>Удалить</button>}
               </div>
-              <Attendees event={e} isAdmin={isAdmin} people={people} onChange={load} />
+              <Attendees
+                event={e}
+                isAdmin={isAdmin}
+                people={people.filter((p) => membersOf(e.circle_id).has(p.id))}
+                onChange={load}
+              />
               <Comments event={e} me={me} isAdmin={isAdmin} onChange={load} />
             </div>
           </article>
@@ -103,11 +120,11 @@ export default function Day() {
       {isAdmin && <Link className="btn ghost" to={`/admin/new?date=${date}`}>+ Добавить событие на этот день</Link>}
 
       <h3>Кто свободен</h3>
-      {free.length === 0 ? (
+      {freeShown.length === 0 ? (
         <p className="muted">Пока никто не отметил время. <Link to="/availability">Отметить себя</Link></p>
       ) : (
         <ul className="free-list">
-          {free.map((a) => (
+          {freeShown.map((a) => (
             <li key={a.id}>
               <b>{a.profiles?.name}</b> — {hhmm(a.from_time)}–{hhmm(a.to_time)}
             </li>

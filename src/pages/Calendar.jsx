@@ -3,32 +3,44 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { monthKey, monthCells, monthRange, monthTitle, shiftMonth, toISO, hhmm } from '../lib/dates';
 import Collage from '../components/Collage';
+import { useCircles } from '../circles';
 
 const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
 export default function Calendar() {
   const [params, setParams] = useSearchParams();
   const key = params.get('m') || monthKey(new Date());
+  const { circles, circleById, selectedId, visibleUserIds } = useCircles();
   const [events, setEvents] = useState([]);
-  const [freeByDate, setFreeByDate] = useState({}); // дата → число свободных друзей
+  const [availability, setAvailability] = useState([]); // [{ date, user_id }]
   const todayISO = toISO(new Date());
+  const showCircleDots = selectedId === 'all' && circles.length > 1;
 
   useEffect(() => {
     const [start, end] = monthRange(key);
     let cancelled = false;
     (async () => {
+      let evQuery = supabase.from('events').select('*, rsvps(user_id)').gte('date', start).lt('date', end);
+      if (selectedId !== 'all') evQuery = evQuery.eq('circle_id', selectedId);
       const [ev, av] = await Promise.all([
-        supabase.from('events').select('*, rsvps(user_id)').gte('date', start).lt('date', end).order('start_time'),
+        evQuery.order('start_time'),
         supabase.from('availability').select('date, user_id').gte('date', start).lt('date', end),
       ]);
       if (cancelled) return;
       setEvents(ev.data || []);
-      const sets = {};
-      (av.data || []).forEach((a) => (sets[a.date] ||= new Set()).add(a.user_id));
-      setFreeByDate(Object.fromEntries(Object.entries(sets).map(([d, s]) => [d, s.size])));
+      setAvailability(av.data || []);
     })();
     return () => { cancelled = true; };
-  }, [key]);
+  }, [key, selectedId]);
+
+  // сколько друзей свободно в день — только люди выбранного круга
+  const freeByDate = useMemo(() => {
+    const sets = {};
+    availability
+      .filter((a) => !visibleUserIds || visibleUserIds.has(a.user_id))
+      .forEach((a) => (sets[a.date] ||= new Set()).add(a.user_id));
+    return Object.fromEntries(Object.entries(sets).map(([d, s]) => [d, s.size]));
+  }, [availability, visibleUserIds]);
 
   const byDate = useMemo(() => {
     const map = {};
@@ -63,6 +75,9 @@ export default function Calendar() {
                 <ul className="titles">
                   {list.map((e) => (
                     <li key={e.id}>
+                      {showCircleDots && (
+                        <span className="dot" style={{ background: circleById[e.circle_id]?.color }} />
+                      )}
                       <b>{hhmm(e.start_time)}</b> {e.title}
                       {e.rsvps.length > 0 && <small> · {e.rsvps.length} 👥</small>}
                     </li>
