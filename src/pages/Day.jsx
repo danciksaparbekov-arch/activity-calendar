@@ -4,6 +4,7 @@ import { supabase, imageUrl, BUCKET } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { dayTitle, hhmm } from '../lib/dates';
 import Attendees from '../components/Attendees';
+import AddPhotos from '../components/AddPhotos';
 import Comments from '../components/Comments';
 
 export default function Day() {
@@ -88,6 +89,7 @@ export default function Day() {
                 <button className={going ? 'btn ghost' : 'btn'} onClick={() => toggle(e)}>
                   {going ? 'Отказаться' : 'Я иду'}
                 </button>
+                {isAdmin && <AddPhotos event={e} onChange={load} />}
                 {isAdmin && <Link className="btn ghost" to={`/admin/edit/${e.id}`}>✎ Править время и текст</Link>}
                 {isAdmin && <button className="btn danger" onClick={() => removeEvent(e)}>Удалить</button>}
               </div>

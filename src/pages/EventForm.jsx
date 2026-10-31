@@ -4,9 +4,7 @@ import { supabase, BUCKET, imageUrl } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { toISO, hhmm } from '../lib/dates';
 import TimeInput from '../components/TimeInput';
-
-const MAX_IMAGES = 8;
-const MAX_SIZE = 5 * 1024 * 1024; // 5 МБ на картинку
+import { checkImages, uploadImages } from '../lib/upload';
 
 export default function EventForm() {
   const { id } = useParams(); // есть → редактирование
@@ -37,27 +35,21 @@ export default function EventForm() {
 
   function pickFiles(e) {
     const picked = [...e.target.files];
-    const bad = picked.find((f) => !f.type.startsWith('image/') || f.size > MAX_SIZE);
-    if (bad) return setError(`«${bad.name}»: нужна картинка до 5 МБ`);
+    const problem = checkImages(picked, images.length);
+    if (problem) return setError(problem);
     setError('');
     setFiles(picked);
   }
 
   async function submit(e) {
     e.preventDefault();
-    if (images.length + files.length > MAX_IMAGES) return setError(`Не больше ${MAX_IMAGES} картинок`);
+    const problem = checkImages(files, images.length);
+    if (problem) return setError(problem);
     setBusy(true);
     setError('');
+    let uploaded = [];
     try {
-      // загружаем новые файлы под неугадываемыми именами
-      const uploaded = [];
-      for (const f of files) {
-        const ext = (f.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const path = `${crypto.randomUUID()}.${ext}`;
-        const { error } = await supabase.storage.from(BUCKET).upload(path, f, { contentType: f.type });
-        if (error) throw error;
-        uploaded.push(path);
-      }
+      uploaded = await uploadImages(files);
       const row = {
         date,
         start_time: time,
@@ -73,6 +65,8 @@ export default function EventForm() {
       if (!data?.length) throw new Error('Не удалось сохранить: нет прав или событие уже удалено');
       navigate(`/day/${date}`);
     } catch (err) {
+      // запись не сохранилась — убираем только что загруженные файлы
+      if (uploaded.length) await supabase.storage.from(BUCKET).remove(uploaded);
       setError(err.message || String(err));
       setBusy(false);
     }
@@ -123,6 +117,7 @@ export default function EventForm() {
         )}
         <label>Картинки (скриншоты)
           <input type="file" accept="image/*" multiple onChange={pickFiles} />
+          {files.length > 0 && <small>Выбрано файлов: {files.length} — загрузятся после «Сохранить»</small>}
         </label>
 
         {error && <p className="err">{error}</p>}
