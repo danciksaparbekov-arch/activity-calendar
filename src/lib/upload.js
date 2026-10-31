@@ -3,6 +3,14 @@ import { supabase, BUCKET } from './supabase';
 export const MAX_IMAGES = 8;
 export const MAX_SIZE = 5 * 1024 * 1024; // 5 МБ на картинку
 
+// Проверка до редактора: только тип и количество (размер проверяем после обрезки и сжатия)
+export function checkPicked(files, existingCount = 0) {
+  const notImage = files.find((f) => !f.type.startsWith('image/'));
+  if (notImage) return `«${notImage.name}»: нужна картинка`;
+  if (existingCount + files.length > MAX_IMAGES) return `Не больше ${MAX_IMAGES} картинок на событие`;
+  return null;
+}
+
 // Текст ошибки, если файлы не подходят (или null)
 export function checkImages(files, existingCount = 0) {
   const bad = files.find((f) => !f.type.startsWith('image/') || f.size > MAX_SIZE);

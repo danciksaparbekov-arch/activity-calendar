@@ -272,6 +272,26 @@ input.time-input { width: 6em; text-align: center; }
 .comment-form { display: flex; gap: 8px; align-items: flex-end; }
 .comment-form textarea { flex: 1; }
 
+/* галочка в списке кругов */
+label.check { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 14px; color: var(--text); }
+label.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+
+/* редактор картинок */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 14px;
+  background: rgba(8, 7, 24, .78); backdrop-filter: blur(4px);
+}
+.modal {
+  width: min(560px, 100%); max-height: 100%; overflow: auto; padding: 16px 18px;
+  background: var(--surface); border-radius: 20px; box-shadow: var(--shadow);
+  border: 1px solid rgba(255, 255, 255, .08);
+}
+.modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.crop-area { position: relative; width: 100%; height: min(52vh, 380px); background: #000; border-radius: 14px; overflow: hidden; }
+.crop-controls { display: grid; gap: 10px; margin: 12px 0 4px; }
+.crop-controls .tabs { margin: 0; }
+.crop-controls .zoom input { width: 100%; padding: 0; accent-color: var(--accent); }
+
 .free-list { padding-left: 18px; }
 .free-list li { margin: 4px 0; }
 .free-list .link { margin-left: 12px; }

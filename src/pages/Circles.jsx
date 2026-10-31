@@ -87,6 +87,18 @@ function AdminCircles() {
     refresh();
   }
 
+  async function toggleBot(c) {
+    setError('');
+    const { data, error } = await supabase
+      .from('circles')
+      .update({ bot_enabled: !c.bot_enabled })
+      .eq('id', c.id)
+      .select('id');
+    if (error) return setError(error.message);
+    if (!data?.length) return setError('Не удалось изменить: нет прав');
+    refresh();
+  }
+
   async function changeCode(c) {
     const next = window.prompt(`Новый код для круга «${c.name}»:`, codes[c.id] || '');
     if (!next || !next.trim()) return;
@@ -173,6 +185,10 @@ function AdminCircles() {
               <button type="button" className="link" onClick={() => changeCode(c)}>сменить код</button>
               <button type="button" className="link" onClick={() => removeCircle(c)}>удалить круг</button>
             </p>
+            <label className="check">
+              <input type="checkbox" checked={!!c.bot_enabled} onChange={() => toggleBot(c)} />
+              Telegram-бот для этого круга
+            </label>
             <ul className="chips">
               {ids.map((id) => (
                 <li key={id} className="chip">

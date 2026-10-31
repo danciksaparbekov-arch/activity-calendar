@@ -19,7 +19,7 @@ export function CirclesProvider({ children }) {
   const reload = useCallback(async () => {
     const [c, m] = await Promise.all([
       // колонки перечислены явно: invite_code клиенту недоступен, select('*') дал бы ошибку
-      supabase.from('circles').select('id, name, color').order('name'),
+      supabase.from('circles').select('id, name, color, bot_enabled').order('name'),
       supabase.from('circle_members').select('circle_id, user_id'),
     ]);
     setCircles(c.data || []);

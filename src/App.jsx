@@ -48,7 +48,7 @@ export default function App() {
         )}
         <div className="who">
           <InstallButton />
-          <TelegramLink />
+          {circles.some((c) => c.bot_enabled) && <TelegramLink />}
           <NameForm />
           <ChangePassword />
           <button className="link" onClick={signOut}>Выйти</button>

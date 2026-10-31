@@ -4,7 +4,8 @@ import { supabase, BUCKET, imageUrl } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { toISO, hhmm } from '../lib/dates';
 import TimeInput from '../components/TimeInput';
-import { checkImages, uploadImages } from '../lib/upload';
+import { checkImages, checkPicked, uploadImages } from '../lib/upload';
+import { useImageEditor } from '../components/ImageEditor';
 import { useCircles } from '../circles';
 
 export default function EventForm() {
@@ -14,6 +15,7 @@ export default function EventForm() {
   const navigate = useNavigate();
 
   const { circles, selectedId, setSelected } = useCircles();
+  const { edit, modal } = useImageEditor();
   // новое событие — в выбранном сейчас круге (или в первом, если выбраны «все»)
   const [circleId, setCircleId] = useState(selectedId !== 'all' ? selectedId : circles[0]?.id || '');
   const [date, setDate] = useState(params.get('date') || toISO(new Date()));
@@ -44,12 +46,19 @@ export default function EventForm() {
     });
   }, [id]);
 
-  function pickFiles(e) {
+  async function pickFiles(e) {
     const picked = [...e.target.files];
-    const problem = checkImages(picked, images.length);
-    if (problem) return setError(problem);
+    e.target.value = ''; // можно будет выбрать те же файлы ещё раз
+    if (!picked.length) return;
     setError('');
-    setFiles(picked);
+    const early = checkPicked(picked, images.length);
+    if (early) return setError(early);
+
+    // редактор: обрезка, поворот, сжатие; отмена — выбор сбрасывается
+    const edited = await edit(picked);
+    const problem = checkImages(edited, images.length);
+    if (problem) return setError(problem);
+    setFiles(edited);
   }
 
   async function submit(e) {
@@ -161,6 +170,7 @@ export default function EventForm() {
           {id && <button type="button" className="btn danger" onClick={removeEvent}>Удалить</button>}
         </div>
       </form>
+      {modal}
     </section>
   );
 }
