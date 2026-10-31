@@ -7,14 +7,38 @@ create table public.profiles (
   is_admin boolean not null default false
 );
 
--- Профиль создаётся автоматически при первой регистрации
+-- Профиль создаётся автоматически при регистрации; имя — из формы, иначе часть email до @
 create function public.handle_new_user() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
   insert into public.profiles (id, name)
-  values (new.id, split_part(new.email, '@', 1));
+  values (
+    new.id,
+    coalesce(nullif(left(btrim(new.raw_user_meta_data ->> 'name'), 40), ''), split_part(new.email, '@', 1))
+  );
   return new;
 end $$;
+
+-- Регистрация только по коду приглашения (хранится в app_settings, клиентам недоступен)
+create table public.app_settings (key text primary key, value text not null);
+alter table public.app_settings enable row level security;
+revoke all on public.app_settings from anon, authenticated;
+-- insert into public.app_settings (key, value) values ('invite_code', 'ВАШ-КОД');  -- задать после установки
+
+create function public.check_invite_code() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if coalesce(new.raw_user_meta_data ->> 'invite_code', '')
+       is distinct from (select value from public.app_settings where key = 'invite_code') then
+    raise exception 'invalid invite code';
+  end if;
+  new.raw_user_meta_data := new.raw_user_meta_data - 'invite_code';
+  return new;
+end $$;
+
+create trigger check_invite_code
+  before insert on auth.users
+  for each row execute function public.check_invite_code();
 
 create trigger on_auth_user_created
   after insert on auth.users
