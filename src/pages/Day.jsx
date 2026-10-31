@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { supabase, imageUrl } from '../lib/supabase';
+import { supabase, imageUrl, BUCKET } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { dayTitle, hhmm } from '../lib/dates';
 
@@ -26,6 +26,17 @@ export default function Day() {
     const going = event.rsvps.some((r) => r.user_id === me);
     if (going) await supabase.from('rsvps').delete().eq('event_id', event.id).eq('user_id', me);
     else await supabase.from('rsvps').insert({ event_id: event.id });
+    load();
+  }
+
+  async function removeEvent(event) {
+    if (!window.confirm(`Удалить «${event.title}» вместе с картинками?`)) return;
+    // сначала запись: если нет прав, картинки останутся на месте
+    const { data, error } = await supabase.from('events').delete().eq('id', event.id).select('id');
+    if (error || !data?.length) {
+      return window.alert(error?.message || 'Не удалось удалить: нет прав или событие уже удалено');
+    }
+    if (event.images.length) await supabase.storage.from(BUCKET).remove(event.images);
     load();
   }
 
@@ -59,7 +70,8 @@ export default function Day() {
                 <button className={going ? 'btn ghost' : 'btn'} onClick={() => toggle(e)}>
                   {going ? 'Отказаться' : 'Я иду'}
                 </button>
-                {isAdmin && <Link className="btn ghost" to={`/admin/edit/${e.id}`}>Править</Link>}
+                {isAdmin && <Link className="btn ghost" to={`/admin/edit/${e.id}`}>✎ Править время и текст</Link>}
+                {isAdmin && <button className="btn danger" onClick={() => removeEvent(e)}>Удалить</button>}
               </div>
               <p className="going">
                 Идут ({e.rsvps.length}): {e.rsvps.map((r) => r.profiles?.name).join(', ') || 'пока никто'}

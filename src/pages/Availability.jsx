@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { toISO, dayTitle, parseISO, hhmm } from '../lib/dates';
+import TimeInput from '../components/TimeInput';
 
 export default function Availability() {
   const { session } = useAuth();
@@ -46,8 +47,8 @@ export default function Availability() {
 
       <form onSubmit={add} className="row">
         <input type="date" required value={date} min={toISO(new Date())} onChange={(e) => setDate(e.target.value)} />
-        <label>с <input type="time" required value={from} onChange={(e) => setFrom(e.target.value)} /></label>
-        <label>до <input type="time" required value={to} onChange={(e) => setTo(e.target.value)} /></label>
+        <TimeInput label="с" value={from} onChange={setFrom} />
+        <TimeInput label="до" value={to} onChange={setTo} />
         <button className="btn">Добавить</button>
       </form>
       {error && <p className="err">{error}</p>}

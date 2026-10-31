@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase, BUCKET, imageUrl } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { toISO, hhmm } from '../lib/dates';
+import TimeInput from '../components/TimeInput';
 
 const MAX_IMAGES = 8;
 const MAX_SIZE = 5 * 1024 * 1024; // 5 МБ на картинку
@@ -64,10 +65,12 @@ export default function EventForm() {
         description: description.trim(),
         images: [...images, ...uploaded],
       };
-      const { error } = id
-        ? await supabase.from('events').update(row).eq('id', id)
-        : await supabase.from('events').insert({ ...row, created_by: session.user.id });
+      // .select() нужен, чтобы заметить «0 строк изменено» (нет прав) — иначе Supabase молчит
+      const { data, error } = id
+        ? await supabase.from('events').update(row).eq('id', id).select('id')
+        : await supabase.from('events').insert({ ...row, created_by: session.user.id }).select('id');
       if (error) throw error;
+      if (!data?.length) throw new Error('Не удалось сохранить: нет прав или событие уже удалено');
       navigate(`/day/${date}`);
     } catch (err) {
       setError(err.message || String(err));
@@ -83,9 +86,13 @@ export default function EventForm() {
   }
 
   async function removeEvent() {
-    if (!window.confirm('Удалить событие?')) return;
+    if (!window.confirm('Удалить событие вместе с картинками?')) return;
+    setError('');
+    // сначала запись: если нет прав, картинки останутся на месте
+    const { data, error } = await supabase.from('events').delete().eq('id', id).select('id');
+    if (error) return setError(error.message);
+    if (!data?.length) return setError('Не удалось удалить: нет прав или событие уже удалено');
     if (images.length) await supabase.storage.from(BUCKET).remove(images);
-    await supabase.from('events').delete().eq('id', id);
     navigate(`/day/${date}`);
   }
 
@@ -95,7 +102,7 @@ export default function EventForm() {
       <form onSubmit={submit} className="form">
         <div className="row">
           <label>Дата <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} /></label>
-          <label>Время <input type="time" required value={time} onChange={(e) => setTime(e.target.value)} /></label>
+          <TimeInput label="Время (24 ч)" value={time} onChange={setTime} />
         </div>
         <label>Заголовок
           <input required maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} />
