@@ -69,6 +69,8 @@ input.time-input { width: 6em; text-align: center; }
   border-radius: 10px; padding: 8px; font: inherit; cursor: pointer;
 }
 .tabs button.on { color: var(--text); border-color: var(--accent); }
+.tabs.method { margin-top: 0; }
+.tabs.method button { font-size: 14px; padding: 6px; }
 .small { font-size: 13px; }
 
 /* ── Календарь ── */
