@@ -83,7 +83,7 @@ export default function Login() {
 
   return (
     <div className="login">
-      <h1>Что делаем вместе</h1>
+      <h1>Что делаем?</h1>
       <p className="muted">Календарь планов для своих.</p>
 
       <div className="tabs">

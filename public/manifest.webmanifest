@@ -1,13 +1,13 @@
 {
-  "name": "Что делаем вместе",
-  "short_name": "Вместе",
+  "name": "Что делаем?",
+  "short_name": "Что делаем?",
   "description": "Календарь совместных планов для друзей",
   "lang": "ru",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#12131a",
-  "theme_color": "#12131a",
+  "background_color": "#12112a",
+  "theme_color": "#12112a",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },

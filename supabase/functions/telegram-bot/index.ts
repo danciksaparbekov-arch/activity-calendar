@@ -1,4 +1,4 @@
-// Telegram-бот «Что делаем вместе». Supabase Edge Function (Deno).
+// Telegram-бот «Что делаем?». Supabase Edge Function (Deno).
 // Три входа:
 //   1) вебхук Telegram (заголовок X-Telegram-Bot-Api-Secret-Token)  — команды и нажатия кнопок;
 //   2) сигнал из БД через pg_net (заголовок x-notify-secret)          — уведомления о новом;
@@ -108,7 +108,7 @@ function renderIdea(idea: Json, site: string, header = '') {
 }
 
 const HELP =
-  '<b>Что делаем вместе</b> — бот календаря планов.\n\n' +
+  '<b>Что делаем?</b> — бот календаря планов.\n\n' +
   '/events — ближайшие события\n' +
   '/ideas — идеи и голосование\n' +
   '/unlink — отвязать Telegram от аккаунта\n\n' +
@@ -136,7 +136,7 @@ async function handleMessage(m: Json) {
   if (!me) {
     return send(
       chat,
-      'Привет! Я бот календаря «Что делаем вместе».\n\n' +
+      'Привет! Я бот календаря «Что делаем?».\n\n' +
       `Чтобы подключить меня, откройте сайт ${esc(site)}, нажмите «✈ Telegram» и перейдите по ссылке — я сразу узнаю вас.`,
     );
   }

@@ -53,9 +53,9 @@ export default function Calendar() {
   return (
     <section>
       <div className="month-nav">
-        <button className="btn ghost" onClick={() => go(-1)}>←</button>
+        <button className="btn nav-btn" aria-label="Предыдущий месяц" onClick={() => go(-1)}>‹</button>
         <h2>{monthTitle(key)}</h2>
-        <button className="btn ghost" onClick={() => go(1)}>→</button>
+        <button className="btn nav-btn" aria-label="Следующий месяц" onClick={() => go(1)}>›</button>
       </div>
 
       <div className="weekdays">{WEEKDAYS.map((w) => <span key={w}>{w}</span>)}</div>
@@ -70,7 +70,16 @@ export default function Calendar() {
             <Link key={iso} to={`/day/${iso}`} className={cls}>
               {list.length > 0 && <Collage paths={list.flatMap((e) => e.images)} />}
               <span className="num">{num}</span>
-              {free > 0 && <span className="free">свободны: {free}</span>}
+              <span className="foot">
+                {free > 0 && <span className="free">свободны: {free}</span>}
+                {list.length > 0 && (
+                  <span className="dots">
+                    {list.slice(0, 5).map((e) => (
+                      <i key={e.id} style={{ background: circleById[e.circle_id]?.color || 'var(--pink)' }} />
+                    ))}
+                  </span>
+                )}
+              </span>
               {list.length > 0 && (
                 <ul className="titles">
                   {list.map((e) => (

@@ -27,7 +27,7 @@ export default function App() {
   return (
     <>
       <header className="topbar">
-        <NavLink to="/" className="brand">Что делаем вместе</NavLink>
+        <NavLink to="/" className="brand">Что делаем?</NavLink>
         <nav>
           <NavLink to="/" end>Календарь</NavLink>
           <NavLink to="/ideas">Идеи</NavLink>
