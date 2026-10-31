@@ -61,15 +61,24 @@ export default function Login() {
     if (res.error) return setError(explain(res.error));
 
     if (method === 'link') {
-      setNotice(`Ссылка отправлена на ${cleanEmail}. Откройте письмо в этом же браузере.`);
+      setNotice(
+        `Ссылка отправлена на ${cleanEmail}. Откройте её в этом же браузере, где вы сейчас. ` +
+        'Если письмо открылось в другом приложении и вход не сработал — войдите по паролю.',
+      );
     } else if (signup && !res.data.session) {
       // при включённом «Confirm email» сессии сразу нет — нужно подтвердить почту
-      setNotice(`Аккаунт создан. Мы отправили письмо на ${cleanEmail} — подтвердите почту, затем войдите.`);
+      setNotice(`Аккаунт создан, но почта не подтверждена. Напишите админу — он подтвердит вручную.`);
     }
     // при успешном входе AuthProvider сам увидит сессию и покажет приложение
   }
 
-  const switchMode = (m) => { setMode(m); setError(''); setNotice(''); };
+  // регистрация — только по паролю: ссылка из письма на телефонах часто открывается в другом браузере
+  const switchMode = (m) => {
+    setMode(m);
+    if (m === 'signup') setMethod('password');
+    setError('');
+    setNotice('');
+  };
   const switchMethod = (m) => { setMethod(m); setError(''); setNotice(''); };
 
   return (
@@ -81,10 +90,12 @@ export default function Login() {
         <button type="button" className={!signup ? 'on' : ''} onClick={() => switchMode('signin')}>Войти</button>
         <button type="button" className={signup ? 'on' : ''} onClick={() => switchMode('signup')}>Регистрация</button>
       </div>
-      <div className="tabs method">
-        <button type="button" className={method === 'password' ? 'on' : ''} onClick={() => switchMethod('password')}>По паролю</button>
-        <button type="button" className={method === 'link' ? 'on' : ''} onClick={() => switchMethod('link')}>Ссылкой на почту</button>
-      </div>
+      {!signup && (
+        <div className="tabs method">
+          <button type="button" className={method === 'password' ? 'on' : ''} onClick={() => switchMethod('password')}>По паролю</button>
+          <button type="button" className={method === 'link' ? 'on' : ''} onClick={() => switchMethod('link')}>Ссылкой на почту</button>
+        </div>
+      )}
 
       <form onSubmit={submit}>
         {signup && (

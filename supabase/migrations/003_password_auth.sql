@@ -14,7 +14,7 @@ alter table public.app_settings enable row level security;
 revoke all on public.app_settings from anon, authenticated;
 
 -- Код приглашения: его сообщаете друзьям; сменить можно командой update ниже
-insert into public.app_settings (key, value) values ('invite_code', 'ПРИДУМАЙТЕ-КОД');
+insert into public.app_settings (key, value) values ('invite_code', 'Темщик');
 
 -- ── Регистрация допускается только с верным кодом ──
 -- Если код не задан или не совпал — создание пользователя отклоняется (клиент увидит

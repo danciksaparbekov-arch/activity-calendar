@@ -19,8 +19,10 @@
 1. **Supabase.** Создать проект на [supabase.com](https://supabase.com). В *SQL Editor* выполнить [supabase/schema.sql](supabase/schema.sql).
 2. **Ключи.** *Project Settings → API*: скопировать Project URL и anon key в `.env` (шаблон — `.env.example`).
 3. **Вход: по паролю и по ссылке из письма.** Ссылкам нужен свой SMTP (*Authentication → SMTP*, например Gmail с паролем приложения),
-   иначе встроенная почта Supabase даёт 2–3 письма в час. *Confirm email* (*Providers → Email*) включён — почта проверяется при регистрации;
-   выключить, если регистрироваться по паролю нужно без письма.
+   иначе встроенная почта Supabase даёт 2–3 письма в час. *Confirm email* (*Providers → Email*) держим **выключенным**: регистрация идёт по паролю без письма
+   (ссылка из письма на телефонах часто открывается в другом браузере и вход не срабатывает), доступ защищает код приглашения.
+   Ссылка из почты остаётся только как способ входа. Если пользователь «застрял» неподтверждённым:
+   `update auth.users set email_confirmed_at = now() where email = '...';`
    Задать код приглашения: `insert into public.app_settings (key, value) values ('invite_code', 'ВАШ-КОД');`
    Ссылка из письма ведёт на адрес сайта — он должен быть в *Authentication → URL Configuration → Redirect URLs*.
 4. **Локально:** `npm install` → `npm run dev`. Зарегистрироваться (имя, код, email, пароль).
