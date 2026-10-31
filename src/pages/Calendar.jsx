@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { monthKey, monthCells, monthRange, monthTitle, shiftMonth, toISO, hhmm } from '../lib/dates';
+import { monthKey, monthCells, monthRange, monthTitle, shiftMonth, toISO, parseISO, hhmm } from '../lib/dates';
 import Collage from '../components/Collage';
 import { useCircles } from '../circles';
 
@@ -70,6 +70,7 @@ export default function Calendar() {
             <Link key={iso} to={`/day/${iso}`} className={cls}>
               {list.length > 0 && <Collage paths={list.flatMap((e) => e.images)} />}
               <span className="num">{num}</span>
+              <span className="wd">{WEEKDAYS[(parseISO(iso).getDay() + 6) % 7]}</span>
               <span className="foot">
                 {free > 0 && <span className="free">свободны: {free}</span>}
                 {list.length > 0 && (

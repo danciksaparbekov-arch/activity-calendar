@@ -117,11 +117,15 @@ input.time-input { width: 6em; text-align: center; }
   position: relative; overflow: hidden; border-radius: var(--radius);
   aspect-ratio: 1 / 1; padding: 10px; text-decoration: none;
   display: flex; flex-direction: column; justify-content: space-between;
-  background: var(--surface-2);
-  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, .05);
+  /* матовое «стекло» на фоне градиента страницы */
+  background: rgba(255, 255, 255, .07);
+  border: 1px solid rgba(255, 255, 255, .10);
+  backdrop-filter: blur(6px);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, .06);
 }
 .cell.blank { visibility: hidden; }
-.cell.quiet:hover { background: #322f63; }
+.cell.quiet:hover { background: rgba(255, 255, 255, .13); }
+.cell .wd { display: none; }  /* день недели — только в мобильной сетке */
 .cell .num { position: relative; z-index: 2; font-weight: 800; font-size: 19px; text-shadow: 0 1px 6px #000a; }
 .cell.quiet .num { color: var(--lavender); text-shadow: none; }
 /* сегодня — розовая карточка, как выделенный день в макете */
@@ -162,13 +166,19 @@ input.time-input { width: 6em; text-align: center; }
   .cell:hover .collage img { filter: brightness(.72); }
 }
 
-/* узкие экраны: только дни с событиями/свободными, списком */
+/* телефон: квадратные плитки по три в ряд, в каждой день недели (недельной сетки нет) */
 @media (max-width: 700px) {
   .weekdays { display: none; }
-  .grid { grid-template-columns: 1fr; }
-  .cell { aspect-ratio: 16 / 9; }
-  .cell.quiet, .cell.blank { display: none; }
-  .cell.quiet:has(.free) { display: flex; aspect-ratio: auto; }
+  .grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .cell { aspect-ratio: 1 / 1; padding: 10px; }
+  .cell.blank { display: none; }
+  .cell .num { font-size: 22px; }
+  .cell .wd {
+    display: block; position: absolute; top: 12px; right: 12px; z-index: 2;
+    font-size: 12px; font-weight: 700; color: var(--lavender); text-shadow: 0 1px 4px #000a;
+  }
+  .cell.quiet .wd { text-shadow: none; }
+  .cell.today.quiet .wd { color: #35124f; }
   .month-nav h2 { min-width: 0; font-size: 22px; }
   .topbar { padding: 10px 14px; gap: 10px; }
 }
