@@ -1,0 +1,139 @@
+:root {
+  --bg: #12131a;
+  --surface: #1c1e29;
+  --text: #eceef5;
+  --muted: #8b90a5;
+  --accent: #ff7a59;
+  --ok: #5fd39a;
+  --err: #ff6b6b;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+a { color: inherit; }
+h1, h2, h3 { line-height: 1.2; }
+.center { display: grid; place-items: center; min-height: 60vh; color: var(--muted); }
+.muted { color: var(--muted); }
+.ok { color: var(--ok); }
+.err { color: var(--err); }
+
+/* ── Шапка ── */
+.topbar {
+  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  padding: 12px 20px; background: var(--surface);
+  position: sticky; top: 0; z-index: 10;
+}
+.brand { font-weight: 700; text-decoration: none; margin-right: auto; }
+.topbar nav { display: flex; gap: 16px; }
+.topbar nav a { text-decoration: none; color: var(--muted); }
+.topbar nav a.active { color: var(--text); }
+.who { display: flex; gap: 12px; align-items: center; }
+main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+.narrow { max-width: 620px; }
+
+/* ── Кнопки и поля ── */
+.btn {
+  background: var(--accent); color: #1a0f0b; border: 0; border-radius: 10px;
+  padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer; text-decoration: none;
+  display: inline-block;
+}
+.btn:disabled { opacity: .6; cursor: default; }
+.btn.ghost { background: transparent; color: var(--text); border: 1px solid #3a3d52; }
+.btn.danger { background: var(--err); }
+.btn.small { padding: 4px 10px; }
+.link { background: none; border: 0; color: var(--muted); cursor: pointer; font: inherit; padding: 0; }
+.link:hover { color: var(--text); }
+input, textarea {
+  background: var(--surface); color: var(--text); border: 1px solid #3a3d52;
+  border-radius: 10px; padding: 9px 12px; font: inherit; max-width: 100%;
+}
+label { display: grid; gap: 4px; color: var(--muted); font-size: 14px; }
+.form { display: grid; gap: 14px; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+.inline { display: flex; gap: 6px; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+
+/* ── Вход ── */
+.login { max-width: 420px; margin: 18vh auto 0; padding: 0 20px; }
+.login form { display: grid; gap: 12px; }
+
+/* ── Календарь ── */
+.month-nav { display: flex; align-items: center; justify-content: center; gap: 20px; }
+.month-nav h2 { min-width: 220px; text-align: center; text-transform: capitalize; }
+.weekdays, .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+.weekdays { color: var(--muted); text-align: center; margin: 10px 0 6px; font-size: 14px; }
+
+.cell {
+  position: relative; overflow: hidden; border-radius: var(--radius);
+  aspect-ratio: 1 / 1; padding: 8px; text-decoration: none;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.cell.blank { visibility: hidden; }
+.cell.quiet { background: var(--surface); }
+.cell.today { outline: 2px solid var(--accent); }
+.cell .num { position: relative; z-index: 2; font-weight: 700; font-size: 18px; text-shadow: 0 1px 6px #000a; }
+.cell .free {
+  position: relative; z-index: 2; font-size: 11px; color: var(--ok);
+}
+.cell.has-events { transition: transform .2s; }
+.cell.has-events:hover { transform: scale(1.04); z-index: 5; }
+
+/* коллаж на фоне карточки */
+.collage { position: absolute; inset: 0; display: grid; gap: 2px; z-index: 0; background: #000; }
+.collage img { width: 100%; height: 100%; object-fit: cover; display: block; filter: brightness(.75); transition: filter .2s; }
+.cell:hover .collage img { filter: brightness(.45) blur(1px); }
+.collage.n2 { grid-template-columns: 1fr 1fr; }
+.collage.n3 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.collage.n3 img:first-child { grid-row: span 2; }
+.collage.n4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.empty-collage { background: linear-gradient(135deg, #3a2a5c, #5c2a3f); }
+
+/* заголовки событий — появляются при наведении */
+.titles {
+  position: absolute; inset: 0; z-index: 3; margin: 0; padding: 36px 8px 8px; list-style: none;
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 3px;
+  font-size: 13px; opacity: 0; transition: opacity .2s; text-shadow: 0 1px 4px #000;
+}
+.cell:hover .titles { opacity: 1; }
+.titles li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* на сенсорных экранах hover нет — заголовки видны всегда */
+@media (hover: none) {
+  .titles { opacity: 1; background: linear-gradient(transparent 40%, #000b); }
+  .cell:hover .collage img { filter: brightness(.75); }
+}
+
+/* узкие экраны: только дни с событиями/свободными, списком */
+@media (max-width: 700px) {
+  .weekdays { display: none; }
+  .grid { grid-template-columns: 1fr; }
+  .cell { aspect-ratio: 16 / 9; }
+  .cell.quiet, .cell.blank { display: none; }
+  .cell.quiet:has(.free) { display: flex; aspect-ratio: auto; }
+}
+
+/* ── День ── */
+.back { color: var(--muted); text-decoration: none; }
+.day h2 { text-transform: capitalize; }
+.event { display: flex; gap: 20px; background: var(--surface); border-radius: var(--radius); padding: 18px; margin: 16px 0; }
+.event .time { font-size: 24px; font-weight: 700; color: var(--accent); min-width: 70px; }
+.event h3 { margin: 0 0 6px; }
+.desc { white-space: pre-wrap; margin: 0 0 12px; }
+.going { color: var(--muted); font-size: 14px; margin: 0; }
+.gallery { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.gallery img { height: 120px; border-radius: 8px; display: block; }
+.thumb { position: relative; }
+.thumb .x {
+  position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%;
+  border: 0; background: #000a; color: #fff; cursor: pointer;
+}
+.free-list { padding-left: 18px; }
+.free-list li { margin: 4px 0; }
+.free-list .link { margin-left: 12px; }
+@media (max-width: 560px) { .event { flex-direction: column; gap: 6px; } }
