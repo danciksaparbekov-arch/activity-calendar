@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { supabase, imageUrl, BUCKET } from '../lib/supabase';
+import { supabase, BUCKET } from '../lib/supabase';
 import { useAuth } from '../auth';
 import { dayTitle, hhmm } from '../lib/dates';
 import Attendees from '../components/Attendees';
 import AddPhotos from '../components/AddPhotos';
+import EventGallery from '../components/EventGallery';
 import AddToCalendar from '../components/AddToCalendar';
 import Comments from '../components/Comments';
 import { useCircles } from '../circles';
@@ -101,15 +102,7 @@ export default function Day() {
                 </p>
               )}
               {e.description && <p className="desc">{e.description}</p>}
-              {e.images.length > 0 && (
-                <div className="gallery">
-                  {e.images.map((p) => (
-                    <a key={p} href={imageUrl(p)} target="_blank" rel="noreferrer">
-                      <img src={imageUrl(p)} alt="" loading="lazy" />
-                    </a>
-                  ))}
-                </div>
-              )}
+              <EventGallery event={e} isAdmin={isAdmin} onChange={load} />
               <div className="actions">
                 <button className={going ? 'btn ghost' : 'btn'} onClick={() => toggle(e)}>
                   {going ? 'Отказаться' : 'Я иду'}
