@@ -9,6 +9,7 @@ import EventForm from './pages/EventForm';
 import Circles, { JoinForm } from './pages/Circles';
 import NameForm from './components/NameForm';
 import ChangePassword from './components/ChangePassword';
+import InstallButton from './components/InstallButton';
 
 export default function App() {
   const { session, profile, loading, isAdmin, signOut } = useAuth();
@@ -43,6 +44,7 @@ export default function App() {
           </select>
         )}
         <div className="who">
+          <InstallButton />
           <NameForm />
           <ChangePassword />
           <button className="link" onClick={signOut}>Выйти</button>
