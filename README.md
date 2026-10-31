@@ -50,6 +50,12 @@
 - `005_ideas_event_details.sql` — идеи с голосованием и вариантами времени (`idea_to_event` превращает идею в событие),
   поля события «место», «ссылка на карту» (только http/https), «цена».
 
+- `006_telegram.sql` — Telegram-бот: привязка аккаунтов, функции `bot_*` (только service_role), триггеры уведомлений через `pg_net`.
+  Функция бота — `supabase/functions/telegram-bot` (деплой: `supabase functions deploy telegram-bot --no-verify-jwt`),
+  токен бота — секрет функции `TELEGRAM_BOT_TOKEN`, вебхук ставится вызовом `?action=setup` с секретом из `app_settings`.
+- `007_telegram_groups.sql` — группы: `/linkgroup` (админ сайта) привязывает группу к кругу, в группу идут уведомления круга,
+  кнопки работают у тех, кто подключил Telegram и состоит в круге.
+
 Для нового проекта: `schema.sql`, затем `004_circles.sql` и `005_ideas_event_details.sql` (она перекроет проверку кода из `schema.sql`).
 
 **Порядок выкладки:** сначала миграция в Supabase, потом `git push` (иначе сайт будет обращаться к таблицам, которых нет).

@@ -116,7 +116,9 @@ const HELP =
 
 // ── Сообщения пользователя ──
 async function handleMessage(m: Json) {
-  if (m.chat?.type !== 'private' || typeof m.text !== 'string') return; // только личные чаты
+  const chatType = m.chat?.type;
+  if (chatType === 'group' || chatType === 'supergroup') return handleGroupMessage(m);
+  if (chatType !== 'private' || typeof m.text !== 'string') return; // дальше только личные чаты
   const chat: number = m.chat.id;
   const [rawCmd, ...rest] = m.text.trim().split(/\s+/);
   const cmd = rawCmd.split('@')[0].toLowerCase();
@@ -171,7 +173,10 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function handleCallback(q: Json) {
   const chat: number | undefined = q.message?.chat?.id;
-  if (!chat || q.message.chat.type !== 'private') return;
+  if (!chat) return;
+  const type = q.message.chat.type;
+  if (type === 'group' || type === 'supergroup') return handleGroupCallback(q);
+  if (type !== 'private') return;
   const [action, id] = String(q.data ?? '').split(':');
   if (!UUID.test(id ?? '')) return tg('answerCallbackQuery', { callback_query_id: q.id });
   const { site_url: site } = await secrets();
@@ -199,6 +204,167 @@ async function handleCallback(q: Json) {
   const r = kind === 'event' ? renderEvent(result.data, site) : renderIdea(result.data, site);
   await tg('editMessageText', {
     chat_id: chat, message_id: q.message.message_id, text: r.text, parse_mode: 'HTML',
+    link_preview_options: { is_disabled: true }, reply_markup: { inline_keyboard: r.keyboard },
+  });
+}
+
+// ── Группы ──
+// Группа привязана к одному кругу (/linkgroup, только админ сайта). Сообщения в группе общие,
+// поэтому показываем счётчики и имена, а не «ваш» выбор; нажавшего определяем по Telegram-аккаунту.
+function renderGroupEvent(ev: Json, site: string, header = '') {
+  const names = (ev.names ?? []).map(esc).join(', ');
+  const lines = [
+    header,
+    `<b>${esc(ev.title)}</b>`,
+    `📅 ${esc(fmtDate(ev.date))} · ${esc(ev.time)}`,
+    ev.location ? `📍 ${esc(ev.location)}` : '',
+    ev.price ? `💰 ${esc(ev.price)}` : '',
+    `👥 Идут (${ev.going}): ${names || 'пока никто'}`,
+  ].filter(Boolean);
+  const keyboard = [
+    [
+      { text: '✅ Я иду', callback_data: `go:${ev.id}` },
+      { text: '❌ Не иду', callback_data: `nogo:${ev.id}` },
+    ],
+    [{ text: '🌐 На сайте', url: `${site}#/day/${ev.date}` }],
+  ];
+  return { text: lines.join('\n'), keyboard };
+}
+
+function renderGroupIdea(idea: Json, site: string, header = '') {
+  const desc = String(idea.description ?? '').slice(0, 300);
+  const times = (idea.times ?? []).slice(0, 5);
+  const lines = [
+    header,
+    `💡 <b>${esc(idea.title)}</b>`,
+    `Предложил(а): ${esc(idea.author ?? 'кто-то')}`,
+    desc ? esc(desc) : '',
+    `👍 ${idea.votes}`,
+    times.length ? '🕒 Варианты времени — нажмите, что вам подходит (ещё раз — снять):' : '🕒 Вариантов времени пока нет — предложите на сайте.',
+  ].filter(Boolean);
+  const keyboard = [
+    [{ text: `👍 Поддержать · ${idea.votes}`, callback_data: `iv:${idea.id}` }],
+    ...times.map((t: Json) => [{
+      text: `🕒 ${fmtDate(t.date)}, ${t.hm} · ${t.votes}`,
+      callback_data: `tv:${t.id}`,
+    }]),
+    [{ text: '🌐 Открыть идеи на сайте', url: `${site}#/ideas` }],
+  ];
+  return { text: lines.join('\n'), keyboard };
+}
+
+const GROUP_HELP =
+  '<b>Что делаем?</b> — бот календаря планов.\n\n' +
+  '/events — ближайшие события круга\n' +
+  '/ideas — идеи и голосование\n' +
+  '/linkgroup — привязать группу к кругу (админ сайта)\n' +
+  '/unlinkgroup — отвязать группу\n\n' +
+  'Кнопки работают у тех, кто подключил Telegram на сайте («✈ Telegram»).';
+
+async function handleGroupMessage(m: Json) {
+  const group: number = m.chat.id;
+
+  // обычная группа стала супергруппой — у неё новый id, переносим привязку
+  if (m.migrate_to_chat_id) {
+    await db.rpc('bot_group_migrate', { p_old: group, p_new: m.migrate_to_chat_id });
+    return;
+  }
+  // бота добавили в группу
+  const botId = Number(BOT_TOKEN.split(':')[0]);
+  if (Array.isArray(m.new_chat_members) && m.new_chat_members.some((u: Json) => u.id === botId)) {
+    return send(group, 'Привет! Чтобы я присылал сюда новости круга, админ сайта (с подключённым Telegram) пусть напишет /linkgroup.\n\n' + GROUP_HELP);
+  }
+  if (typeof m.text !== 'string' || !m.from) return;
+
+  const cmd = m.text.trim().split(/\s+/)[0].split('@')[0].toLowerCase();
+  if (!cmd.startsWith('/')) return; // обычные разговоры в группе игнорируем
+  const user: number = m.from.id;
+  const { site_url: site } = await secrets();
+  const { data: info } = await db.rpc('bot_group_info', { p_group: group });
+
+  switch (cmd) {
+    case '/linkgroup': {
+      const { data: circles } = await db.rpc('bot_admin_circles', { p_user: user });
+      if (!circles) return send(group, 'Привязать группу может только админ сайта с подключённым Telegram (кнопка «✈ Telegram» на сайте).');
+      if (!circles.length) return send(group, 'На сайте пока нет кругов.');
+      const prompt = info
+        ? `Сейчас группа привязана к кругу «${esc(info.circle)}». Выберите другой круг (или /unlinkgroup):`
+        : 'К какому кругу привязать эту группу?';
+      return send(group, prompt, circles.map((c: Json) => [{ text: c.name, callback_data: `lg:${c.id}` }]));
+    }
+    case '/unlinkgroup': {
+      const { data: ok } = await db.rpc('bot_group_unlink', { p_user: user, p_group: group });
+      return send(group, ok ? 'Группа отвязана, уведомления сюда больше не приходят.' : 'Отвязать может только админ сайта (и только привязанную группу).');
+    }
+    case '/events': {
+      if (!info) return send(group, 'Группа не привязана к кругу. Админ сайта: /linkgroup');
+      const { data: events } = await db.rpc('bot_group_events', { p_group: group, p_limit: 8 });
+      if (!events?.length) return send(group, 'Ближайших событий пока нет.');
+      for (const ev of events) { const r = renderGroupEvent(ev, site); await send(group, r.text, r.keyboard); }
+      return;
+    }
+    case '/ideas': {
+      if (!info) return send(group, 'Группа не привязана к кругу. Админ сайта: /linkgroup');
+      const { data: ideas } = await db.rpc('bot_group_ideas', { p_group: group, p_limit: 6 });
+      if (!ideas?.length) return send(group, 'Идей пока нет. Предложите на сайте: ' + esc(site) + '#/ideas');
+      for (const idea of ideas) { const r = renderGroupIdea(idea, site); await send(group, r.text, r.keyboard); }
+      return;
+    }
+    case '/start':
+    case '/help':
+      return send(group, GROUP_HELP);
+  }
+}
+
+async function handleGroupCallback(q: Json) {
+  const group: number = q.message.chat.id;
+  const user: number = q.from.id;
+  const [action, id] = String(q.data ?? '').split(':');
+  if (!UUID.test(id ?? '')) return tg('answerCallbackQuery', { callback_query_id: q.id });
+  const { site_url: site } = await secrets();
+  const alert = (text: string) => tg('answerCallbackQuery', { callback_query_id: q.id, show_alert: true, text });
+
+  // выбор круга для привязки (кнопки из /linkgroup)
+  if (action === 'lg') {
+    const { data: name } = await db.rpc('bot_group_link', { p_user: user, p_group: group, p_circle: id });
+    if (!name) return alert('Привязать группу может только админ сайта с подключённым Telegram.');
+    await tg('answerCallbackQuery', { callback_query_id: q.id, text: 'Готово' });
+    return tg('editMessageText', {
+      chat_id: group, message_id: q.message.message_id, parse_mode: 'HTML',
+      text: `Группа привязана к кругу «${esc(name)}». Сюда будут приходить новые события, идеи и варианты времени этого круга.\n\n${GROUP_HELP}`,
+      reply_markup: { inline_keyboard: [] },
+    });
+  }
+
+  let result: { data: Json };
+  let kind: 'event' | 'idea' = 'idea';
+  switch (action) {
+    case 'go':   result = await db.rpc('bot_group_set_rsvp', { p_user: user, p_group: group, p_event: id, p_going: true });  kind = 'event'; break;
+    case 'nogo': result = await db.rpc('bot_group_set_rsvp', { p_user: user, p_group: group, p_event: id, p_going: false }); kind = 'event'; break;
+    case 'iv':   result = await db.rpc('bot_group_toggle_idea', { p_user: user, p_group: group, p_idea: id }); break;
+    case 'tv':   result = await db.rpc('bot_group_toggle_time', { p_user: user, p_group: group, p_time: id }); break;
+    default:     return tg('answerCallbackQuery', { callback_query_id: q.id });
+  }
+
+  const res = result.data;
+  if (!res?.ok) {
+    const msg: Record<string, string> = {
+      not_linked: 'Подключите Telegram на сайте (кнопка «✈ Telegram»), тогда кнопки заработают для вас.',
+      forbidden: 'Вы не состоите в круге этой группы.',
+      group_not_linked: 'Группа не привязана к кругу.',
+    };
+    return alert(msg[res?.error] ?? 'Не получилось, попробуйте ещё раз.');
+  }
+  const toast =
+    action === 'go' ? 'Вы идёте ✅' :
+    action === 'nogo' ? 'Отметка снята' :
+    action === 'iv' ? (res.on ? 'Голос учтён 👍' : 'Голос снят') :
+    (res.on ? 'Время отмечено 🕒' : 'Отметка снята');
+  await tg('answerCallbackQuery', { callback_query_id: q.id, text: toast });
+
+  const r = kind === 'event' ? renderGroupEvent(res.item, site) : renderGroupIdea(res.item, site);
+  await tg('editMessageText', {
+    chat_id: group, message_id: q.message.message_id, text: r.text, parse_mode: 'HTML',
     link_preview_options: { is_disabled: true }, reply_markup: { inline_keyboard: r.keyboard },
   });
 }
@@ -239,6 +405,22 @@ async function notify(kind: string, id: string) {
       }
     }
   }
+
+  // группы, привязанные к кругу: общее сообщение со счётчиками
+  const { data: groups } = await db.rpc('bot_notify_groups', { p_circle: circle });
+  for (const group of (groups ?? []) as number[]) {
+    if (kind === 'event') {
+      const { data: ev } = await db.rpc('bot_group_event', { p_group: group, p_event: id });
+      if (ev) { const r = renderGroupEvent(ev, site, '🎉 <b>Новое событие</b>'); await send(group, r.text, r.keyboard); }
+    } else {
+      const { data: idea } = await db.rpc('bot_group_idea', { p_group: group, p_idea: id });
+      if (idea) {
+        const header = kind === 'idea' ? '💡 <b>Новая идея</b>' : '🕒 <b>Новый вариант времени</b>';
+        const r = renderGroupIdea(idea, site, header);
+        await send(group, r.text, r.keyboard);
+      }
+    }
+  }
 }
 
 // ── Регистрация вебхука и команд ──
@@ -259,7 +441,19 @@ async function setup() {
       { command: 'help', description: 'Помощь' },
     ],
   });
-  return json({ ok: !!hook.ok && !!cmds.ok, webhook: hook.description ?? hook.ok, commands: cmds.ok });
+  const groupCmds = await tg('setMyCommands', {
+    scope: { type: 'all_group_chats' },
+    commands: [
+      { command: 'events', description: 'Ближайшие события круга' },
+      { command: 'ideas', description: 'Идеи и голосование' },
+      { command: 'linkgroup', description: 'Привязать группу к кругу (админ)' },
+      { command: 'unlinkgroup', description: 'Отвязать группу' },
+    ],
+  });
+  return json({
+    ok: !!hook.ok && !!cmds.ok && !!groupCmds.ok,
+    webhook: hook.description ?? hook.ok, commands: cmds.ok, group_commands: groupCmds.ok,
+  });
 }
 
 const json = (body: unknown, status = 200) =>
