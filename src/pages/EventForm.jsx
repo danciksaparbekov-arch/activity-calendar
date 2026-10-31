@@ -20,6 +20,9 @@ export default function EventForm() {
   const [time, setTime] = useState('18:00');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [location, setLocation] = useState('');
+  const [mapUrl, setMapUrl] = useState('');
+  const [price, setPrice] = useState('');
   const [images, setImages] = useState([]); // уже загруженные пути
   const [files, setFiles] = useState([]);   // новые файлы
   const [busy, setBusy] = useState(false);
@@ -34,6 +37,9 @@ export default function EventForm() {
       setTime(hhmm(data.start_time));
       setTitle(data.title);
       setDescription(data.description);
+      setLocation(data.location || '');
+      setMapUrl(data.map_url || '');
+      setPrice(data.price || '');
       setImages(data.images);
     });
   }, [id]);
@@ -61,6 +67,10 @@ export default function EventForm() {
         start_time: time,
         title: title.trim(),
         description: description.trim(),
+        location: location.trim() || null,
+        // ссылка без схемы («2gis.kg/...») → добавляем https://, в БД разрешены только http(s)
+        map_url: mapUrl.trim() ? (/^https?:\/\//i.test(mapUrl.trim()) ? mapUrl.trim() : `https://${mapUrl.trim()}`) : null,
+        price: price.trim() || null,
         images: [...images, ...uploaded],
       };
       // .select() нужен, чтобы заметить «0 строк изменено» (нет прав) — иначе Supabase молчит
@@ -117,6 +127,17 @@ export default function EventForm() {
         </label>
         <label>Описание
           <textarea rows={5} value={description} onChange={(e) => setDescription(e.target.value)} />
+        </label>
+        <div className="row">
+          <label>Место
+            <input maxLength={200} placeholder="Например: Картинг Ала-Арча" value={location} onChange={(e) => setLocation(e.target.value)} />
+          </label>
+          <label>Цена
+            <input maxLength={60} placeholder="500 сом / бесплатно" value={price} onChange={(e) => setPrice(e.target.value)} />
+          </label>
+        </div>
+        <label>Ссылка на карту (Google Maps, 2GIS, Яндекс)
+          <input type="text" inputMode="url" maxLength={500} placeholder="https://..." value={mapUrl} onChange={(e) => setMapUrl(e.target.value)} />
         </label>
 
         {images.length > 0 && (

@@ -88,6 +88,18 @@ export default function Day() {
                 </span>
               )}
               <h3>{e.title}</h3>
+              {(e.location || e.price || e.map_url) && (
+                <p className="details">
+                  {(e.location || e.map_url) && (
+                    <span>
+                      📍 {e.map_url ? (
+                        <a href={e.map_url} target="_blank" rel="noopener noreferrer">{e.location || 'Открыть на карте'}</a>
+                      ) : e.location}
+                    </span>
+                  )}
+                  {e.price && <span>💰 {e.price}</span>}
+                </p>
+              )}
               {e.description && <p className="desc">{e.description}</p>}
               {e.images.length > 0 && (
                 <div className="gallery">

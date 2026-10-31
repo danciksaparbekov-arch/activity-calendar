@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Calendar from './pages/Calendar';
 import Day from './pages/Day';
 import Availability from './pages/Availability';
+import Ideas from './pages/Ideas';
 import EventForm from './pages/EventForm';
 import Circles, { JoinForm } from './pages/Circles';
 import NameForm from './components/NameForm';
@@ -28,6 +29,7 @@ export default function App() {
         <NavLink to="/" className="brand">Что делаем вместе</NavLink>
         <nav>
           <NavLink to="/" end>Календарь</NavLink>
+          <NavLink to="/ideas">Идеи</NavLink>
           <NavLink to="/availability">Я свободен</NavLink>
           <NavLink to="/circles">Круги</NavLink>
           {isAdmin && <NavLink to="/admin/new">+ Событие</NavLink>}
@@ -61,6 +63,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Calendar />} />
             <Route path="/day/:date" element={<Day />} />
+            <Route path="/ideas" element={<Ideas />} />
             <Route path="/availability" element={<Availability />} />
             <Route path="/circles" element={<Circles />} />
             {isAdmin && <Route path="/admin/new" element={<EventForm />} />}

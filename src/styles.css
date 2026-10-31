@@ -143,6 +143,19 @@ input.time-input { width: 6em; text-align: center; }
   position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%;
   border: 0; background: #000a; color: #fff; cursor: pointer;
 }
+/* идеи */
+.ideas h3 { margin: 0; }
+.idea-form { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; margin: 16px 0; }
+.idea-form h3 { margin-bottom: 4px; }
+.idea { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; margin: 14px 0; }
+.idea-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+.idea h4 { margin: 14px 0 6px; color: var(--muted); font-weight: 600; }
+.time-options { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 8px; }
+.time-options li { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; background: #23263a; border-radius: 10px; padding: 8px 12px; }
+.time-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.details { display: flex; gap: 16px; flex-wrap: wrap; margin: 0 0 8px; }
+.details a { color: var(--accent); }
+
 /* добавить в календарь / установка */
 .cal-menu { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .cal-options { display: inline-flex; flex-wrap: wrap; gap: 6px; }
