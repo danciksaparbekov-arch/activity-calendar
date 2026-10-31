@@ -1,25 +1,50 @@
-const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
-const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
+import { useEffect, useRef, useState } from 'react';
+import { parseTime } from '../lib/dates';
 
-// Выбор времени в 24-часовом формате (<input type="time"> зависит от языка браузера и рисует AM/PM)
-// value / onChange — строка 'HH:MM'
+// Поле для ввода времени в 24-часовом формате (23, 18:30, 1830).
+// value / onChange — строка 'HH:MM'; пока ввод некорректен, наружу уходит '' и форма не отправится.
 export default function TimeInput({ value, onChange, label }) {
-  const [h = '00', m = '00'] = (value || '').split(':');
-  // если в базе минуты не кратны 5 — добавляем их в список, чтобы не потерять
-  const minutes = MINUTES.includes(m) ? MINUTES : [...MINUTES, m].sort();
+  const [text, setText] = useState(value || '');
+  const ref = useRef(null);
+
+  // значение пришло снаружи (например, подгрузилось при редактировании) — показать его
+  useEffect(() => {
+    if (value && parseTime(text) !== value) setText(value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  // встроенная проверка формы: сообщение и блокировка отправки
+  useEffect(() => {
+    ref.current?.setCustomValidity(parseTime(text) ? '' : 'Введите время, например 23 или 18:30');
+  }, [text]);
+
+  function handleChange(e) {
+    setText(e.target.value);
+    onChange(parseTime(e.target.value) || '');
+  }
+
+  // при уходе из поля приводим к виду ЧЧ:ММ
+  function handleBlur() {
+    const t = parseTime(text);
+    if (t) setText(t);
+  }
 
   return (
     <label>
       {label}
-      <span className="time-input">
-        <select aria-label="Часы" value={h} onChange={(e) => onChange(`${e.target.value}:${m}`)}>
-          {HOURS.map((x) => <option key={x}>{x}</option>)}
-        </select>
-        <span>:</span>
-        <select aria-label="Минуты" value={m} onChange={(e) => onChange(`${h}:${e.target.value}`)}>
-          {minutes.map((x) => <option key={x}>{x}</option>)}
-        </select>
-      </span>
+      <input
+        ref={ref}
+        className="time-input"
+        type="text"
+        inputMode="numeric"
+        autoComplete="off"
+        placeholder="18:30"
+        maxLength={5}
+        required
+        value={text}
+        onChange={handleChange}
+        onBlur={handleBlur}
+      />
     </label>
   );
 }

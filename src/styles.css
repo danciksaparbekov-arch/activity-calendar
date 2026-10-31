@@ -55,11 +55,7 @@ input, textarea {
 }
 label { display: grid; gap: 4px; color: var(--muted); font-size: 14px; }
 .form { display: grid; gap: 14px; }
-.time-input { display: inline-flex; align-items: center; gap: 4px; color: var(--text); }
-.time-input select {
-  background: var(--surface); color: var(--text); border: 1px solid #3a3d52;
-  border-radius: 10px; padding: 9px 8px; font: inherit;
-}
+input.time-input { width: 6em; text-align: center; }
 .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
 .inline { display: flex; gap: 6px; }
 .actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }

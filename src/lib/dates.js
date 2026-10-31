@@ -38,5 +38,21 @@ export const monthTitle = (key) => {
 export const dayTitle = (iso) =>
   parseISO(iso).toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
 
+// Свободный ввод времени → 'HH:MM' или null, если не время.
+// Понимает: 23, 9, 18:30, 18.30, 18 30, 1830, 930
+export function parseTime(text) {
+  const s = String(text).trim();
+  let h, m;
+  let match;
+  if ((match = s.match(/^(\d{1,2})$/))) [h, m] = [match[1], '0'];
+  else if ((match = s.match(/^(\d{1,2})[:.\s](\d{2})$/))) [h, m] = [match[1], match[2]];
+  else if ((match = s.match(/^(\d{1,2})(\d{2})$/))) [h, m] = [match[1], match[2]];
+  else return null;
+  const hh = Number(h);
+  const mm = Number(m);
+  if (hh > 23 || mm > 59) return null;
+  return `${pad(hh)}:${pad(mm)}`;
+}
+
 // 'HH:MM:SS' → 'HH:MM'
 export const hhmm = (t) => (t ? t.slice(0, 5) : '');
