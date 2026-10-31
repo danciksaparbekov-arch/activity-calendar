@@ -6,6 +6,7 @@ import Day from './pages/Day';
 import Availability from './pages/Availability';
 import EventForm from './pages/EventForm';
 import NameForm from './components/NameForm';
+import ChangePassword from './components/ChangePassword';
 
 export default function App() {
   const { session, profile, loading, isAdmin, signOut } = useAuth();
@@ -25,6 +26,7 @@ export default function App() {
         </nav>
         <div className="who">
           <NameForm />
+          <ChangePassword />
           <button className="link" onClick={signOut}>Выйти</button>
         </div>
       </header>
