@@ -159,6 +159,9 @@ input.time-input { width: 6em; text-align: center; }
   padding: 12px 16px; margin: 12px 0;
 }
 .circle-card h4 { margin: 0 0 4px; }
+.circle-card h4 .link { font-size: 13px; font-weight: 400; }
+.edit-circle { align-items: center; margin-bottom: 6px; }
+.edit-circle input[type='color'] { padding: 2px; height: 36px; width: 44px; }
 .circle-card p { margin: 4px 0; }
 .circle-card .link { margin-left: 12px; }
 

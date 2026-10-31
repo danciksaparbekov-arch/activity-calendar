@@ -46,6 +46,7 @@ function AdminCircles() {
   const [color, setColor] = useState('#ff7a59');
   const [code, setCode] = useState('');
   const [pick, setPick] = useState({});       // circle_id → выбранный человек
+  const [editing, setEditing] = useState(null); // { id, name, color } — круг в режиме правки
   const [error, setError] = useState('');
 
   const loadAdmin = useCallback(async () => {
@@ -68,6 +69,21 @@ function AdminCircles() {
     const { error } = await supabase.from('circles').insert({ name: name.trim(), color, invite_code: code.trim() });
     if (error) return fail(error);
     setName(''); setCode('');
+    refresh();
+  }
+
+  async function saveEdit(e) {
+    e.preventDefault();
+    setError('');
+    // .select() — чтобы заметить «0 строк изменено» (нет прав), иначе Supabase молчит
+    const { data, error } = await supabase
+      .from('circles')
+      .update({ name: editing.name.trim(), color: editing.color })
+      .eq('id', editing.id)
+      .select('id');
+    if (error) return setError(error.message);
+    if (!data?.length) return setError('Не удалось сохранить: нет прав или круг удалён');
+    setEditing(null);
     refresh();
   }
 
@@ -123,10 +139,38 @@ function AdminCircles() {
         const candidates = people.filter((p) => !ids.includes(p.id));
         return (
           <article key={c.id} className="circle-card" style={{ borderLeftColor: c.color }}>
-            <h4>{c.name}</h4>
+            {editing?.id === c.id ? (
+              <form onSubmit={saveEdit} className="inline edit-circle">
+                <input
+                  required
+                  maxLength={40}
+                  autoFocus
+                  value={editing.name}
+                  onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                />
+                <input
+                  type="color"
+                  value={editing.color}
+                  onChange={(e) => setEditing({ ...editing, color: e.target.value })}
+                />
+                <button className="btn small">Сохранить</button>
+                <button type="button" className="link" onClick={() => setEditing(null)}>отмена</button>
+              </form>
+            ) : (
+              <h4>
+                {c.name}
+                <button
+                  type="button"
+                  className="link"
+                  onClick={() => setEditing({ id: c.id, name: c.name, color: c.color })}
+                >
+                  изменить название и цвет
+                </button>
+              </h4>
+            )}
             <p>
               Код: <b>{codes[c.id] ?? '…'}</b>{' '}
-              <button type="button" className="link" onClick={() => changeCode(c)}>сменить</button>
+              <button type="button" className="link" onClick={() => changeCode(c)}>сменить код</button>
               <button type="button" className="link" onClick={() => removeCircle(c)}>удалить круг</button>
             </p>
             <ul className="chips">
