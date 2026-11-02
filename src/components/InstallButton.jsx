@@ -36,7 +36,7 @@ export default function InstallButton() {
 
   return (
     <span className="install">
-      <button className="link" onClick={install}>📲 Установить</button>
+      <button className="link" onClick={install}>Установить</button>
       {tip && (
         <span className="tip">
           Нажмите «Поделиться» <b>⎋</b> в Safari → «На экран «Домой»».
