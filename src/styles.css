@@ -168,7 +168,8 @@ input.time-input { width: 6em; text-align: center; }
 
 /* телефон: квадратные плитки по три в ряд, в каждой день недели (недельной сетки нет) */
 @media (max-width: 700px) {
-  .weekdays { display: none; }
+  .weekdays:not(.picker) { display: none; }
+  .me-free { top: 34px; right: 11px; }
   .grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .cell { aspect-ratio: 1 / 1; padding: 10px; }
   .cell.blank { display: none; }
@@ -305,4 +306,46 @@ label.check input { width: 18px; height: 18px; accent-color: var(--accent); }
 .free-list { padding-left: 18px; }
 .free-list li { margin: 4px 0; }
 .free-list .link { margin-left: 12px; }
+.free-list .chip { margin-right: 6px; }
+.free-list .chip .link.x { margin-left: 6px; font-size: 16px; line-height: 1; }
+.free-list > li > .link.x { font-size: 18px; }
+
+/* ── Отметка свободного времени ── */
+.small-nav { margin: 10px 0 0; gap: 14px; }
+.small-nav h3 { min-width: 180px; text-align: center; text-transform: capitalize; margin: 8px 0; }
+.small-nav .nav-btn { width: 36px; height: 36px; font-size: 22px; }
+.picker { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.picker.weekdays { margin: 8px 0 6px; }
+.pick-day {
+  position: relative; aspect-ratio: 1 / 1; border-radius: 12px; font: inherit; font-weight: 700;
+  color: var(--text); background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .10); cursor: pointer;
+}
+.pick-day:hover:not(:disabled) { background: rgba(255, 255, 255, .15); }
+.pick-day:disabled { opacity: .3; cursor: default; }
+.pick-day.today { box-shadow: 0 0 0 2px var(--pink); }
+.pick-day.on { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: var(--glow); }
+.pick-day.marked::after, .legend-dot {
+  content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--ok);
+}
+.pick-day.marked::after { position: absolute; bottom: 5px; left: calc(50% - 3.5px); }
+.legend-dot { display: inline-block; vertical-align: middle; }
+
+.free-form { display: grid; gap: 12px; margin: 14px 0; justify-items: start; }
+.pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill {
+  display: grid; justify-items: center; gap: 1px; padding: 8px 14px; border-radius: 14px; cursor: pointer;
+  font: inherit; font-weight: 700; color: var(--text); background: var(--field); border: 1px solid var(--line);
+}
+.pill small { font-size: 11px; font-weight: 600; color: var(--muted); }
+.pill.on { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: var(--glow); }
+.pill.on small { color: #e6e1ff; }
+.free-me { margin-top: 18px; padding-top: 6px; border-top: 1px solid var(--line); }
+.free-me h4 { margin: 12px 0 0; }
+
+/* галочка «я свободен» в углу ячейки календаря */
+.me-free {
+  position: absolute; top: 8px; right: 8px; z-index: 3; width: 20px; height: 20px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #0b2e1d;
+  background: var(--ok); box-shadow: 0 0 0 2px rgba(0, 0, 0, .35);
+}
 @media (max-width: 560px) { .event { flex-direction: column; gap: 6px; } }

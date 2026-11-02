@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase, BUCKET } from '../lib/supabase';
 import { useAuth } from '../auth';
-import { dayTitle, hhmm } from '../lib/dates';
+import { dayTitle, hhmm, toISO } from '../lib/dates';
+import { removeFree, slotLabel } from '../lib/availability';
+import FreeForm from '../components/FreeForm';
 import Attendees from '../components/Attendees';
 import AddPhotos from '../components/AddPhotos';
 import EventGallery from '../components/EventGallery';
@@ -49,6 +51,15 @@ export default function Day() {
       ? await supabase.from('rsvps').delete().eq('event_id', event.id).eq('user_id', me)
       : await supabase.from('rsvps').insert({ event_id: event.id, user_id: me });
     if (error) window.alert(error.message);
+    load();
+  }
+
+  async function removeMine(id) {
+    try {
+      await removeFree(id);
+    } catch (e) {
+      window.alert(e.message || String(e));
+    }
     load();
   }
 
@@ -128,15 +139,26 @@ export default function Day() {
 
       <h3>Кто свободен</h3>
       {freeShown.length === 0 ? (
-        <p className="muted">Пока никто не отметил время. <Link to="/availability">Отметить себя</Link></p>
+        <p className="muted">Пока никто не отметил время.</p>
       ) : (
         <ul className="free-list">
           {freeShown.map((a) => (
             <li key={a.id}>
-              <b>{a.profiles?.name}</b> — {hhmm(a.from_time)}–{hhmm(a.to_time)}
+              <b>{a.profiles?.name}</b> — {slotLabel(a.from_time, a.to_time)}
+              {a.user_id === me && (
+                <button className="link x" aria-label="Удалить" onClick={() => removeMine(a.id)}>×</button>
+              )}
             </li>
           ))}
         </ul>
+      )}
+
+      {date >= toISO(new Date()) && (
+        <div className="free-me">
+          <h4>Я свободен в этот день</h4>
+          <FreeForm userId={me} dates={[date]} onSaved={load} />
+          <p className="muted small">Сразу на несколько дней — <Link to="/availability">здесь</Link>.</p>
+        </div>
       )}
     </section>
   );

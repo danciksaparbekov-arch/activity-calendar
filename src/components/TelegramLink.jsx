@@ -4,7 +4,7 @@ import { useAuth } from '../auth';
 
 const BOT = import.meta.env.VITE_BOT_USERNAME || 'activity_calendar_bot';
 
-// «✈ Telegram» в шапке: привязать бота к аккаунту (одноразовый код → ссылка на бота) или отвязать
+// «Telegram» в шапке: привязать бота к аккаунту (одноразовый код → ссылка на бота) или отвязать
 export default function TelegramLink() {
   const { session } = useAuth();
   const me = session.user.id;
@@ -44,7 +44,7 @@ export default function TelegramLink() {
 
   return (
     <span className="install">
-      <button className="link" onClick={() => setOpen((o) => !o)}>✈ Telegram</button>
+      <button className="link" onClick={() => setOpen((o) => !o)}>Telegram</button>
       {open && (
         <span className="tip tg-panel">
           {linked === null && 'Проверяем…'}

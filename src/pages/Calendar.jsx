@@ -4,12 +4,14 @@ import { supabase } from '../lib/supabase';
 import { monthKey, monthCells, monthRange, monthTitle, shiftMonth, toISO, parseISO, hhmm } from '../lib/dates';
 import Collage from '../components/Collage';
 import { useCircles } from '../circles';
+import { useAuth } from '../auth';
 
 const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
 export default function Calendar() {
   const [params, setParams] = useSearchParams();
   const key = params.get('m') || monthKey(new Date());
+  const me = useAuth().session.user.id;
   const { circles, circleById, selectedId, visibleUserIds } = useCircles();
   const [events, setEvents] = useState([]);
   const [availability, setAvailability] = useState([]); // [{ date, user_id }]
@@ -42,6 +44,12 @@ export default function Calendar() {
     return Object.fromEntries(Object.entries(sets).map(([d, s]) => [d, s.size]));
   }, [availability, visibleUserIds]);
 
+  // дни, на которые свободен я сам
+  const myFree = useMemo(
+    () => new Set(availability.filter((a) => a.user_id === me).map((a) => a.date)),
+    [availability, me],
+  );
+
   const byDate = useMemo(() => {
     const map = {};
     events.forEach((e) => (map[e.date] ||= []).push(e));
@@ -69,6 +77,7 @@ export default function Calendar() {
           return (
             <Link key={iso} to={`/day/${iso}`} className={cls}>
               {list.length > 0 && <Collage paths={list.flatMap((e) => e.images)} />}
+              {myFree.has(iso) && <span className="me-free" title="Вы отметили, что свободны">✓</span>}
               <span className="num">{num}</span>
               <span className="wd">{WEEKDAYS[(parseISO(iso).getDay() + 6) % 7]}</span>
               <span className="foot">
